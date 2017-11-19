@@ -104,7 +104,7 @@ bot.command(:claim, min_args: 1, max_args: 1, description: "Claim a game key", u
   #event.user.pm "Deleting key from database"
   keys.where(:key => key).delete
   #event.user.pm "Key has been deleted"
-  bot.send_message('277122727847002113', "#{@user} claimed key #{key} for #{game}.")
+  bot.send_message('277122727847002113', "<@#{event.user.id}> claimed key #{key} for #{game}.")
 
   @logger.info("Key #{key} for game #{game} was claimed by #{@user}")
   return 0
