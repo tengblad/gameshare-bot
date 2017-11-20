@@ -1,13 +1,24 @@
 #!/usr/bin/ruby
-
 require 'rubygems'
 require 'discordrb'
 require 'sequel'
 require 'logger'
+require 'yaml'
+
+config = YAML.load_file('./props.yaml')
+
+@token = config['token']
+@clientId = config['clientId']
+@auditChannel = config['auditChannel']
+@announcementChannel = config['announcementChannel']
 
 @logger = Logger.new('logfile.log')
 
 @logger.info("Starting application")
+@logger.info(@token)
+@logger.info(@clientId)
+@logger.info(@auditChannel)
+@logger.info(@announcementChannel)
 
 DB = Sequel.connect('sqlite://games.db') # requires sqlite3
 
@@ -31,9 +42,9 @@ keys  = DB[:keys].order(:names_name)
 @niceWords = ["swell", "cute", "nice", "adorable", "good-hearted", "lovely", "amazing", "awesome", "fantastic", "wonderful", "adorable", "ghostly", "pink", "purrfect", "supercalifragilisticexpialidocious", "thoughtful", "charming", "generous", "good", "helpful", "neat", "plucky", "sweet"]
 
 
-bot = Discordrb::Commands::CommandBot.new token: 'MzY3NjYyOTE5ODA4NDUwNTcw.DL-vNA.MzKXZi911l483d3ngX4yEurYeAI', client_id: 367662919808450570, prefix: '!', advanced_functionality: true
+bot = Discordrb::Commands::CommandBot.new token: @token, client_id: @clientId, prefix: '!', advanced_functionality: true
 
-#bot.send_message('321728273501519873', "Hello! I'm a friendly game sharing bot! Send me '!help' or '!gamekeys' in a private message to learn more!")
+bot.send_message("#{@announcementChannel}", "Hello! I'm a friendly game sharing bot! Send me '!help' or '!gamekeys' in a private message to learn more!")
 
 bot.message(with_text: '!cat') do |event|
   event.respond "I'm not a cat! I'm a person! >:3"
@@ -70,8 +81,7 @@ bot.command(:add, min_args: 2, max_args: 2, description: "Add a game key.", usag
       keys.insert(:key => key, :names_name => game)
       @logger.info("Key #{key} for game #{game} was added by #{@user}")
       _event.user.pm "Added key #{key} for game #{game} to database."
-      bot.send_message('193098277984403456', "#{@user} added a key for #{game}. They're so #{@niceWords.sample}!")
- #     bot.send_message('277122727847002113', "#{@user} added a key for #{game}.")
+      bot.send_message(@announcementChannel, "#{@user} added a key for #{game}. They're so #{@niceWords.sample}!")
     else 
       _event.user.pm "Key #{key} already exists in database."
     end
@@ -80,8 +90,7 @@ bot.command(:add, min_args: 2, max_args: 2, description: "Add a game key.", usag
       keys.insert(:key => key, :names_name => game)
       @logger.info("Key #{key} for game #{game} was added by #{@user}")
       _event.user.pm "Added key #{key} for game #{game} to database."
-      bot.send_message('193098277984403456', "#{@user} added a key for #{game}. They're so #{@niceWords.sample}!")
-#      bot.send_message('277122727847002113', "#{@user} added a key for #{game}.")
+      bot.send_message(@announcementChannel, "#{@user} added a key for #{game}. They're so #{@niceWords.sample}!")
     else
       _event.user.pm "Key #{key} already exists in database."
     end
@@ -101,10 +110,8 @@ bot.command(:claim, min_args: 1, max_args: 1, description: "Claim a game key", u
 
   event.user.pm "Here is your key for the game #{game}: #{key}. Please enjoy!"
 
-  #event.user.pm "Deleting key from database"
   keys.where(:key => key).delete
-  #event.user.pm "Key has been deleted"
-  bot.send_message('277122727847002113', "<@#{event.user.id}> claimed key #{key} for #{game}.")
+  bot.send_message(@auditChannel, "<@#{event.user.id}> claimed key #{key} for #{game}.")
 
   @logger.info("Key #{key} for game #{game} was claimed by #{@user}")
   return 0
