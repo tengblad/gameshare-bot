@@ -5,7 +5,7 @@ require 'sequel'
 require 'logger'
 require 'yaml'
 
-config = YAML.load_file('./props.yaml')
+config = YAML.load_file('./config.yaml')
 
 @token = config['token']
 @clientId = config['clientId']
@@ -15,10 +15,10 @@ config = YAML.load_file('./props.yaml')
 @logger = Logger.new('logfile.log')
 
 @logger.info("Starting application")
-@logger.info(@token)
-@logger.info(@clientId)
-@logger.info(@auditChannel)
-@logger.info(@announcementChannel)
+@logger.info("Token: #{@token}")
+@logger.info("ClientID: #{@clientId}")
+@logger.info("Audit channel: #{@auditChannel}")
+@logger.info("Announcement channel: #{@announcementChannel}")
 
 DB = Sequel.connect('sqlite://games.db') # requires sqlite3
 
