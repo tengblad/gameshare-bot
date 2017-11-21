@@ -31,6 +31,8 @@ end
 DB.create_table? :keys do
   String :names_name
   String :key
+  String :user
+  String :platform
   unique(:key)
   foreign_key [:names_name], :names
 end
@@ -73,12 +75,13 @@ bot.command(:list, description: "List all the games with keys in the database", 
   return 0
 end
 
-bot.command(:add, min_args: 2, max_args: 2, description: "Add a game key.", usage: "!add \"[game name]\" \"[game key]\". Note that if the game name or key contain spaces they  must be within quotation marks! Also, if your key is a Humble Gift, or any other weblink, drop the http:// at the start of the URL!") do |_event, game, key|
+bot.command(:add, min_args: 3, max_args: 3, description: "Add a game key.", usage: "!add") do |_event, game, key, platform|
+  key = key.to_s
   @user = _event.user.name 
   if names.where(:name => game).empty?
     names.insert(:name => game)
     if keys.where(:key => key).empty?
-      keys.insert(:key => key, :names_name => game)
+      keys.insert(:key => key, :names_name => game, :user => @user, :platform => platform)
       @logger.info("Key #{key} for game #{game} was added by #{@user}")
       _event.user.pm "Added key #{key} for game #{game} to database."
       bot.send_message(@announcementChannel, "#{@user} added a key for #{game}. They're so #{@niceWords.sample}!")
@@ -87,7 +90,7 @@ bot.command(:add, min_args: 2, max_args: 2, description: "Add a game key.", usag
     end
   else
     if keys.where(:key => key).empty?
-      keys.insert(:key => key, :names_name => game)
+      keys.insert(:key => key, :names_name => game, :user => @user, :platform => platform)
       @logger.info("Key #{key} for game #{game} was added by #{@user}")
       _event.user.pm "Added key #{key} for game #{game} to database."
       bot.send_message(@announcementChannel, "#{@user} added a key for #{game}. They're so #{@niceWords.sample}!")
@@ -107,8 +110,13 @@ bot.command(:claim, min_args: 1, max_args: 1, description: "Claim a game key", u
 
   result = keys.where(:names_name => game).first
   key = result[:key]
+  user = result[:user]
+  platform = result[:platform]
 
-  event.user.pm "Here is your key for the game #{game}: #{key}. Please enjoy!"
+  event.user.pm "Here is your #{platform} key for #{game}: #{key}."
+  event.user.pm "The key was donated by #{user}. Remember to thank them!"
+
+#  event.user.pm "Here is your key for the game #{game}: #{key} donated by user #{user}. Please enjoy!"
 
   keys.where(:key => key).delete
   bot.send_message(@auditChannel, "<@#{event.user.id}> claimed key #{key} for #{game}.")
