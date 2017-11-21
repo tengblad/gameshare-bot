@@ -44,7 +44,7 @@ keys  = DB[:keys].order(:names_name)
 @niceWords = ["swell", "cute", "nice", "adorable", "good-hearted", "lovely", "amazing", "awesome", "fantastic", "wonderful", "adorable", "ghostly", "pink", "purrfect", "supercalifragilisticexpialidocious", "thoughtful", "charming", "generous", "good", "helpful", "neat", "plucky", "sweet"]
 
 
-bot = Discordrb::Commands::CommandBot.new token: @token, client_id: @clientId, prefix: '!', advanced_functionality: true
+bot = Discordrb::Commands::CommandBot.new token: @token, client_id: @clientId, prefix: '!', advanced_functionality: true, chain_args_delim: ';'
 
 bot.send_message(@announcementChannel, "Hello! I'm a friendly game sharing bot! Send me '!help' or '!gamekeys' in a private message to learn more!")
 
@@ -79,7 +79,7 @@ bot.command(:add, min_args: 3, max_args: 3, description: "Add a game key.", usag
   
   platform = platform.upcase
 
-  @user = _event.user.name 
+  @user = _event.user.name
   if names.where(:name => game).empty?
     names.insert(:name => game)
     if keys.where(:key => key).empty?
