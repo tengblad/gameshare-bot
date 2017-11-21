@@ -75,7 +75,7 @@ bot.command(:list, description: "List all the games with keys in the database", 
   return 0
 end
 
-bot.command(:add, min_args: 3, max_args: 3, description: "Add a game key.", usage: "!add  \"Game Name\" \"Game Key\" \"Platform (Steam/Origin/Etc)\". The bot is a little bit stupid, so if you're adding a URL as a key, please drop the http:// or https:// at the start.") do |_event, game, key, platform|
+bot.command(:add, min_args: 3, max_args: 3, description: "Add a game key.", usage: "!add  \"Game Name\" \"Game Key\" \"Platform (Steam/Origin/Etc)\".") do |_event, game, key, platform|
   
   platform = platform.upcase
 
