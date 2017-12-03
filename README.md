@@ -15,8 +15,13 @@ The easiest way to start the bot is to use the inclued ``gameshareBot.sh`` scrip
 
 ## Usage
 The following commands are supported by the bot:
+``
 !help: Shows a list of all the commands available or displays help for a specific command.
+
 !gamekeys: General information about the bot
+
 !list: List all the games with keys in the database
+
 !add: Add a game key.
-!claim: Claim a game key
+
+!claim: Claim a game key``
