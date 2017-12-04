@@ -42,7 +42,8 @@ DB.create_table? :claims do
   Integer :number_of_claims
   String :game
   String :key
-  String :user
+  String :user_id
+  String :user_name
 end
 
 names = DB[:names].order(:name)
@@ -142,7 +143,7 @@ bot.command(:claim, min_args: 1, max_args: 1, description: "Claim a game key", u
   event.user.pm "Here is your #{platform} key for #{game}: #{key}."
   event.user.pm "The key was donated by #{user}. Remember to thank them!"
 
-  claims.insert(:date_of_claim => @date, :user => event.user.id, :game => game, :key => key)
+  claims.insert(:date_of_claim => @date, :user_id => @user_id, :user_name => @user, :game => game, :key => key)
 
   keys.where(:key => key).delete
 
