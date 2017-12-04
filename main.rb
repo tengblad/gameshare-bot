@@ -37,9 +37,17 @@ DB.create_table? :keys do
   foreign_key [:names_name], :names
 end
 
+DB.create_table? :claims do
+  Date :date_of_claim
+  Integer :number_of_claims
+  String :game
+  String :key
+  String :user
+end
+
 names = DB[:names].order(:name)
 keys  = DB[:keys].order(:names_name)
-
+claims = DB[:claims]
 
 @niceWords = ["swell", "cute", "nice", "adorable", "good-hearted", "lovely", "amazing", "awesome", "fantastic", "wonderful", "adorable", "ghostly", "pink", "purrfect", "supercalifragilisticexpialidocious", "thoughtful", "charming", "generous", "good", "helpful", "neat", "plucky", "sweet"]
 
@@ -80,31 +88,47 @@ bot.command(:add, min_args: 3, max_args: 3, description: "Add a game key.", usag
   platform = platform.upcase
 
   @user = _event.user.name
-  if names.where(:name => game).empty?
-    names.insert(:name => game)
-    if keys.where(:key => key).empty?
-      keys.insert(:key => key, :names_name => game, :user => @user, :platform => platform)
-      @logger.info("Key #{key} for game #{game} was added by #{@user}")
-      _event.user.pm "Added key #{key} for game #{game} to database."
-      bot.send_message(@announcementChannel, "#{@user} added a key for #{game}. They're so #{@niceWords.sample}!")
+  @game = game.strip
+  @key = key.strip
+  @platform = platform.strip
+
+  if names.where(:name => @game).empty?
+    names.insert(:name => @game)
+    if keys.where(:key => @key).empty?
+      keys.insert(:key => @key, :names_name => @game, :user => @user, :platform => @platform)
+      @logger.info("Key #{@key} for game #{@game} was added by #{@user}")
+      _event.user.pm "Added key #{@key} for game #{@game} to database."
+      bot.send_message(@announcementChannel, "#{@user} added a key for #{@game}. They're so #{@niceWords.sample}!")
     else 
-      _event.user.pm "Key #{key} already exists in database."
+      _event.user.pm "Key #{@key} already exists in database."
     end
   else
-    if keys.where(:key => key).empty?
-      keys.insert(:key => key, :names_name => game, :user => @user, :platform => platform)
-      @logger.info("Key #{key} for game #{game} was added by #{@user}")
-      _event.user.pm "Added key #{key} for game #{game} to database."
-      bot.send_message(@announcementChannel, "#{@user} added a key for #{game}. They're so #{@niceWords.sample}!")
+    if keys.where(:key => @key).empty?
+      keys.insert(:key => @key, :names_name => @game, :user => @user, :platform => @platform)
+      @logger.info("Key #{@key} for game #{@game} was added by #{@user}")
+      _event.user.pm "Added key #{@key} for game #{@game} to database."
+      bot.send_message(@announcementChannel, "#{@user} added a key for #{@game}. They're so #{@niceWords.sample}!")
     else
-      _event.user.pm "Key #{key} already exists in database."
+      _event.user.pm "Key #{@key} already exists in database."
     end
 
   end
 end
 
 bot.command(:claim, min_args: 1, max_args: 1, description: "Claim a game key", usage: "!claim \"[game name]\". Note that the game contains spaces it must be whithin quotation marks!") do |event, game| 
+  t = Time.new
+  @date = t.strftime("%Y-%m-%d")
   @user = event.user.name
+  @user_id = event.user.id
+
+  @num_of_claims = DB["select * FROM CLAIMS WHERE USER IS \"#{@user_id}\" AND date_of_claim IS \"#{@date}\""]
+  @claims = @num_of_claims.count
+
+  if @claims > 3
+        event.user.pm "You have already claimed more than 3 keys today. Please wait until tomorrow."
+        break
+  end
+   
   if keys.where(:names_name => game).empty?
     event.user.pm "No unclaimed keys for game #{game} found."
     break
@@ -118,12 +142,17 @@ bot.command(:claim, min_args: 1, max_args: 1, description: "Claim a game key", u
   event.user.pm "Here is your #{platform} key for #{game}: #{key}."
   event.user.pm "The key was donated by #{user}. Remember to thank them!"
 
-#  event.user.pm "Here is your key for the game #{game}: #{key} donated by user #{user}. Please enjoy!"
+  claims.insert(:date_of_claim => @date, :user => event.user.id, :game => game, :key => key)
 
   keys.where(:key => key).delete
+
+  @claims = @claims+1
+
   bot.send_message(@auditChannel, "<@#{event.user.id}> claimed key #{key} for #{game}.")
+  bot.send_message(@auditChannel, "They have claimed #{@claims} keys today.")
 
   @logger.info("Key #{key} for game #{game} was claimed by #{@user}")
+
   return 0
 end
 bot.run
