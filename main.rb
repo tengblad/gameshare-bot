@@ -11,6 +11,7 @@ config = YAML.load_file('./config.yaml')
 @clientId = config['clientId']
 @auditChannel = config['auditChannel']
 @announcementChannel = config['announcementChannel']
+@maxClaims = config['maxClaims']
 
 @logger = Logger.new('logfile.log')
 
@@ -122,38 +123,38 @@ bot.command(:claim, min_args: 1, max_args: 1, description: "Claim a game key", u
   @user = event.user.name
   @user_id = event.user.id
 
-  @num_of_claims = DB["select * FROM CLAIMS WHERE USER IS \"#{@user_id}\" AND date_of_claim IS \"#{@date}\""]
+  @num_of_claims = DB["select * FROM CLAIMS WHERE USER_ID IS \"#{@user_id}\" AND date_of_claim IS \"#{@date}\""]
   @claims = @num_of_claims.count
 
-  if @claims > 3
-        event.user.pm "You have already claimed more than 3 keys today. Please wait until tomorrow."
-        break
-  end
-   
-  if keys.where(:names_name => game).empty?
-    event.user.pm "No unclaimed keys for game #{game} found."
+  if @claims >=  @maxClaims
+    event.user.pm "You have already claimed more than 3 keys today. Please wait until tomorrow."
+    bot.send_message(@auditChannel, "<@#{event.user.id}> were blocked from claiming a key. They've already reached #{@maxClaims} today.")
     break
+  else
+    if keys.where(:names_name => game).empty?
+      event.user.pm "No unclaimed keys for game #{game} found."
+      break
+    end
+    result = keys.where(:names_name => game).first
+    key = result[:key]
+    user = result[:user]
+    platform = result[:platform]
+
+    event.user.pm "Here is your #{platform} key for #{game}: #{key}."
+    event.user.pm "The key was donated by #{user}. Remember to thank them!"
+
+    claims.insert(:date_of_claim => @date, :user_id => @user_id, :user_name => @user_name, :game => game, :key => key)
+
+    keys.where(:key => key).delete
+
+    @claims = @claims+1
+
+    bot.send_message(@auditChannel, "<@#{event.user.id}> claimed key #{key} for #{game}.")
+    bot.send_message(@auditChannel, "They have claimed #{@claims} keys today.")
+
+    @logger.info("Key #{key} for game #{game} was claimed by #{@user}")
+
+    return 0
   end
-
-  result = keys.where(:names_name => game).first
-  key = result[:key]
-  user = result[:user]
-  platform = result[:platform]
-
-  event.user.pm "Here is your #{platform} key for #{game}: #{key}."
-  event.user.pm "The key was donated by #{user}. Remember to thank them!"
-
-  claims.insert(:date_of_claim => @date, :user_id => @user_id, :user_name => @user, :game => game, :key => key)
-
-  keys.where(:key => key).delete
-
-  @claims = @claims+1
-
-  bot.send_message(@auditChannel, "<@#{event.user.id}> claimed key #{key} for #{game}.")
-  bot.send_message(@auditChannel, "They have claimed #{@claims} keys today.")
-
-  @logger.info("Key #{key} for game #{game} was claimed by #{@user}")
-
-  return 0
 end
 bot.run
