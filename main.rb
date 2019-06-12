@@ -62,28 +62,32 @@ authorised_users = DB[:authorised_users]
 
 @niceWords = ["swell", "cute", "nice", "adorable", "good-hearted", "lovely", "amazing", "awesome", "fantastic", "wonderful", "adorable", "ghostly", "pink", "purrfect", "supercalifragilisticexpialidocious", "thoughtful", "charming", "generous", "good", "helpful", "neat", "plucky", "sweet"]
 
-@users_requesting_validation = {}
+@users_requesting_authorisation = {}
 
-def handle_user_claiming_game(user, game)
+def handle_user_claiming_game(bot, user, game)
   t = Time.new
   @date = t.strftime("%Y-%m-%d")
   @user = user.name
   @user_id = user.id
 
+  keys = DB[:keys].order(:names_name)
+  claims = DB[:claims]
+
   @num_of_claims = DB["select * FROM CLAIMS WHERE USER_ID IS \"#{@user_id}\" AND date_of_claim IS \"#{@date}\""]
   @claims = @num_of_claims.count
 
-  if @claims >= @maxClaims
+  if @claims >= @maxClaims then
     user.pm "You have already claimed more than #{@maxClaims} keys today. Please wait until tomorrow."
     bot.send_message(@auditChannel, "<@#{@user_id}> were blocked from claiming a key. They've already reached #{@maxClaims} today.")
 
-    return 0
+    return
   else
-    if keys.where(:names_name => game).empty?
+    if keys.where(:names_name => game).empty? then
       user.pm "No unclaimed keys for game #{game} found."
 
-      return 0
+      return
     end
+
     result = keys.where(:names_name => game).first
     key = result[:key]
     donator = result[:user]
@@ -104,12 +108,12 @@ def handle_user_claiming_game(user, game)
     @logger.info("Key #{key} for game #{game} was claimed by <@#{@user_id}>")
   end
 
-  return 0
+  return
 end
 
 bot = Discordrb::Commands::CommandBot.new token: @token, client_id: @clientId, prefix: '!', advanced_functionality: true, chain_args_delim: ';'
 
-bot.send_message(@announcementChannel, "Hello! I'm a friendly game sharing bot! Send me '!help' or '!gamekeys' in a private message to learn more!")
+#bot.send_message(@announcementChannel, "Hello! I'm a friendly game sharing bot! Send me '!help' or '!gamekeys' in a private message to learn more!")
 
 bot.message(with_text: '!cat') do |event|
   event.respond "I'm not a cat! I'm a person! >:3"
@@ -135,7 +139,7 @@ bot.command(:list, description: "List all the games with keys in the database", 
        end
       list.user.pm "#{game_list}"
   end
-  return 0
+  return
 end
 
 bot.command(:add, min_args: 3, max_args: 3, description: "Add a game key.", usage: "!add  \"Game Name\" \"Game Key\" \"Platform (Steam/Origin/Etc)\".") do |_event, game, key, platform|
@@ -176,11 +180,14 @@ bot.command(:claim, min_args: 1, max_args: 1, description: "Claim a game key", u
   if authorised_users.where(user_id: @user_id).empty?
     event.user.pm "This is the first time you've tried to claim a key, so this request will be manually authorised by a moderator. Please be patient, we'll get to it as soon as possible."
     bot.send_message(@auditChannel, "<@#{event.user.id}> has tried to claim a key for #{game} and is not authorised. Allow this with `!authorise #{event.user.id}`.")
-    @users_requesting_validation[@user_id: game]
-    return 0
+    @users_requesting_authorisation[@user_id] = game
+
+    return
   end
 
-  return handle_user_claiming_game(event.user, game)
+  handle_user_claiming_game(bot, event.user, game)
+
+  return
 end
 
 bot.command(
@@ -197,29 +204,30 @@ bot.command(
   @date = t.strftime("%Y-%m-%d")
   @user_id = event.user.id
 
-  @authorised = DB["select * from validated_users where user_id is \"#{user_id_to_auth}\""].any?
+  user_id_to_auth = user_id_to_auth.to_i
+
+  @authorised = DB["select * from authorised_users where user_id is \"#{user_id_to_auth}\""].any?
 
   if not authorised_users.where(user_id: user_id_to_auth).empty?
-    event << "This user with id #{user_id_to_auth} is already authorised!"
-    return 0
+    event << "User <@#{user_id_to_auth}> is already authorised!"
+
+    return
   end
 
   authorised_users.insert(date_authorised: @date, user_id: user_id_to_auth, authorised_by_user_id: @user_id)
 
-  if @users_requesting_validation[user_id_to_auth]
-    # Got to find the user object for the sake of PMing them
-    resolved_user = nil
-    bot.servers.each do |server|
-      resolved_user = server.member(user_id_to_auth)
-      if resolved_user then break
-    end
-    if resolved_user
-      handle_user_claiming_game(resolved_user, @users_requesting_validation[user_id_to_auth])
-    end
-    @users_requesting_validation.delete(user_id_to_auth)
-  end
+  bot.send_message(@auditChannel, "Authorised user <@#{user_id_to_auth}>!")
 
-  return 0
+  if @users_requesting_authorisation.has_key? user_id_to_auth
+    # Got to find the user object for the sake of PMing them
+    resolved_user = bot.user(user_id_to_auth)
+    if resolved_user
+      handle_user_claiming_game(bot, resolved_user, @users_requesting_authorisation[user_id_to_auth])
+    end
+    @users_requesting_authorisation.delete(user_id_to_auth)
+
+    return
+  end
 end
 
 bot.run
