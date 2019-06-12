@@ -9,9 +9,9 @@
 # Description:       Enable service provided by daemon.
 ### END INIT INFO
 
-dir="/home/tengblad/Workspace/gameshare-bot"
-cmd="/home/tengblad/Workspace/gameshare-bot/main.rb"
-user="tengblad"
+dir=$PWD
+cmd=$dir/main.rb
+user="root"
 
 name=`basename $0`
 pid_file="/var/run/$name.pid"
