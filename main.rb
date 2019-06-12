@@ -113,7 +113,7 @@ end
 
 bot = Discordrb::Commands::CommandBot.new token: @token, client_id: @clientId, prefix: '!', advanced_functionality: true, chain_args_delim: ';'
 
-#bot.send_message(@announcementChannel, "Hello! I'm a friendly game sharing bot! Send me '!help' or '!gamekeys' in a private message to learn more!")
+bot.send_message(@announcementChannel, "Hello! I'm a friendly game sharing bot! Send me '!help' or '!gamekeys' in a private message to learn more!")
 
 bot.message(with_text: '!cat') do |event|
   event.respond "I'm not a cat! I'm a person! >:3"
