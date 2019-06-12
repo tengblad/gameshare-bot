@@ -187,10 +187,11 @@ bot.command(
   :authorise,
   min_args: 1,
   max_args: 1,
-  description: "Authorise a user to claim keys from the bot. If they requested a key already, that key will be immediately sent to them when confirmed.",
+  description: "Authorise a user to claim keys from the bot. If they requested a key already, that key will be immediately sent to them when confirmed. Only works in the audit channel.",
   usage: "!authorise \"[discord user ID]\".",
   help_available: false,
-  required_permissions: [:manage_server]
+  required_permissions: [:manage_server],
+  channels: [@auditChannel]
 ) do |event, user_id_to_auth|
   t = Time.new
   @date = t.strftime("%Y-%m-%d")
